@@ -1,0 +1,2403 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoMart Jogja – WebGIS Persebaran Supermarket di Kota Yogyakarta</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    .tab-icon-svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    :root {
+      --primary: #ED1C24;
+      --primary-dark: #B3151A;
+      --primary-light: #FFE8EA;
+      --accent: #FFFFFF;
+      --navy: #00A651;
+      --slate: #666666;
+      --text: #1A1A1A;
+      --text-muted: #888888;
+      --surface: #F8F9FA;
+      --surface-2: #FFFFFF;
+      --border: #E8E8E8;
+      --shadow: 0 4px 24px rgba(237, 28, 36, 0.10);
+      --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.13);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --sidebar-w: 320px;
+      --header-h: 60px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--surface-2);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      height: var(--header-h);
+      background: #ED1C24;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      z-index: 1100;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .brand-text h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .brand-text span {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-request {
+      background: var(--accent);
+      color: #1A1A1A;
+      border: none;
+      border-radius: 20px;
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s;
+      font-family: inherit;
+    }
+
+    .btn-request:hover {
+      background: #E8E8E8;
+      transform: translateY(-1px);
+    }
+
+    .header-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #FFFFFF;
+      border-radius: 20px;
+      padding: 5px 12px;
+      color: #1A1A1A;
+      font-size: 12px;
+    }
+
+    .header-stat strong {
+      color: #ED1C24;
+      font-weight: 700;
+    }
+
+    .app-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: width .3s;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .tab-btn .tab-icon {
+      font-size: 16px;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      background: var(--primary-light);
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: var(--surface-2);
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface-2);
+      outline: none;
+      transition: all .2s;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .filter-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+    }
+
+    .chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .chip:hover:not(.active) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all .2s;
+      border: 1.5px solid transparent;
+    }
+
+    .list-item:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+
+    .list-item.active-item {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+
+    .item-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .item-info h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .item-info span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .item-badge {
+      margin-left: auto;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    .badge-supermarket {
+      background: #FFF0EB;
+      color: #FF6B35;
+    }
+
+    .stat-card {
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stat-card .stat-num {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .stat-card .stat-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    .stat-card .stat-ico {
+      font-size: 24px;
+    }
+
+    .chart-wrap {
+      width: 100%;
+      height: 180px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .map-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .layer-switcher {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 500;
+      background: #fff;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .layer-switcher .ls-title {
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .layer-option {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 0;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .layer-option input {
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 28px;
+      left: 12px;
+      z-index: 500;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .map-legend .leg-title {
+      font-weight: 700;
+      margin-bottom: 7px;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .leg-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 2px 0;
+      color: var(--text);
+    }
+
+    .leg-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .map-info-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 500;
+      background: rgba(15, 42, 69, 0.92);
+      backdrop-filter: blur(8px);
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 11px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .map-info-bar span strong {
+      color: #fff;
+    }
+
+    .custom-popup .leaflet-popup-content-wrapper {
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .custom-popup .leaflet-popup-content {
+      margin: 0;
+    }
+
+    .popup-inner {
+      min-width: 220px;
+    }
+
+    .popup-head {
+      padding: 12px 14px 8px;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #fff;
+    }
+
+    .popup-head h3 {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .popup-head span {
+      font-size: 11px;
+      opacity: .85;
+    }
+
+    .popup-body {
+      padding: 10px 14px 12px;
+    }
+
+    .popup-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 3px 0;
+    }
+
+    .popup-row strong {
+      color: var(--text);
+      min-width: 70px;
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 7px;
+      padding: 0 14px 12px;
+    }
+
+    .popup-btn {
+      flex: 1;
+      padding: 7px;
+      border-radius: 8px;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s;
+    }
+
+    .popup-btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .popup-btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .popup-btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .popup-btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(20px);
+      transition: transform .3s;
+      overflow: hidden;
+    }
+
+    .modal-overlay.show .modal {
+      transform: translateY(0);
+    }
+
+    .modal-head {
+      background: linear-gradient(135deg, var(--navy), #1A3A5C);
+      padding: 20px 24px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-head h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .modal-head p {
+      font-size: 12px;
+      opacity: .75;
+      margin-top: 2px;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-body {
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      padding: 10px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      background: var(--surface-2);
+      transition: all .2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-1px);
+    }
+
+    .contact-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 24px 22px;
+    }
+
+    .contact-opt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      transition: all .2s;
+      text-decoration: none;
+    }
+
+    .contact-opt:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .contact-opt .co-icon {
+      font-size: 24px;
+    }
+
+    .contact-opt span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .contact-opt small {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .about-card {
+      background: linear-gradient(135deg, var(--navy), #1A3A5C);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      color: #fff;
+    }
+
+    .about-card h3 {
+      font-family: 'Sora', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .about-card p {
+      font-size: 12px;
+      opacity: .8;
+      line-height: 1.6;
+    }
+
+    .about-feature {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .about-feature:last-child {
+      border: none;
+    }
+
+    .about-feature .af-ico {
+      font-size: 20px;
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .about-feature h5 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .about-feature p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .toggle-sidebar {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 600;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 0 8px 8px 0;
+      width: 18px;
+      height: 44px;
+      cursor: pointer;
+      font-size: 10px;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-sidebar:hover {
+      background: var(--primary-dark);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 3000;
+      transition: transform .3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 99px;
+    }
+
+    .kec-tooltip {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1.5px solid #ED1C24;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ED1C24;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><img src="./gambar/logo_geomart-removebg-preview.png" alt="GeoMart Logo"
+          style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🛒'" /></div>
+      <div class="brand-text">
+        <h1>GeoMart Jogja</h1>
+        <span>WebGIS Persebaran Supermarket di Kota Yogyakarta</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="header-stat"><strong id="hdr-count">0</strong> Supermarket</div>
+      <div class="header-stat"><strong>7</strong> Kecamatan</div>
+      <button class="btn-request" onclick="openRequestModal()">📌 Request Titik Baru</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" onclick="switchTab('visualisasi',this)">
+          <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"></path>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          Peta
+        </button>
+
+        <button class="tab-btn" onclick="switchTab('analisis',this)">
+          <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          Analisis
+        </button>
+
+        <button class="tab-btn" onclick="switchTab('dashboard',this)">
+          <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+          </svg>
+          Dashboard
+        </button>
+
+        <button class="tab-btn" onclick="switchTab('tentang',this)">
+          <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Tentang
+        </button>
+      </div>
+
+
+      <div class="tab-panel active" id="tab-visualisasi">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Cari supermarket..." oninput="filterList()" />
+        </div>
+        <div>
+          <div class="filter-label">Filter Kecamatan</div>
+          <div class="filter-chips" id="kec-chips">
+            <button class="chip active" onclick="filterByKec('semua',this)">Semua</button>
+            <button class="chip" onclick="filterByKec('Mergangsan',this)">Mergangsan</button>
+            <button class="chip" onclick="filterByKec('Mantrijeron',this)">Mantrijeron</button>
+            <button class="chip" onclick="filterByKec('Gondokusuman',this)">Gondokusuman</button>
+            <button class="chip" onclick="filterByKec('Gondomanan',this)">Gondomanan</button>
+            <button class="chip" onclick="filterByKec('Umbulharjo',this)">Umbulharjo</button>
+          </div>
+        </div>
+        <div class="filter-label">Daftar Supermarket (<span id="list-count">0</span>)</div>
+        <div id="supermarket-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-analisis">
+        <div class="section-title">Distribusi per Kecamatan</div>
+        <div class="chart-wrap"><canvas id="chartKec"></canvas></div>
+        <div class="section-title">Kepadatan Distribusi</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;padding:8px 0;">
+          Konsentrasi tertinggi terdapat di <strong>Gedongtengen</strong> (koridor Malioboro) dan
+          <strong>Umbulharjo</strong> (kawasan Kusumanegara). Kecamatan Gondokusuman dan Mergangsan memiliki supermarket
+          dengan jam operasional reguler, sementara beberapa gerai di Gedongtengen beroperasi 24 jam melayani wisatawan.
+        </div>
+        <div class="section-title" style="margin-top:14px;">Metrik Spasial (Nearest Neighbor)</div>
+        <div style="font-size:12px; color:var(--text-muted); line-height:1.6; padding:8px 0;">
+          Berdasarkan algoritma <em>Average Nearest Neighbor</em> (ANN), distribusi ritel memiliki rasio
+          <strong>1.44</strong> dengan nilai <em>z-score</em> <strong>2.92</strong>. Probabilitas acak sangat rendah
+          (<em>p-value</em>: 0.003), mengindikasikan pola persebaran bersifat <strong>Dispersed (Menyebar)</strong>
+          untuk
+          menjangkau pangsa pasar yang lebih luas.
+        </div>
+        <div class="section-title" style="margin-top:8px;">Analisis Spasial</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+
+          <div id="buffer-card" onclick="handleBufferToggle()"
+            style="display:flex; align-items:center; gap:10px; background:var(--surface); padding:10px; border-radius:var(--radius-sm); border:1px solid #A5D6A7; cursor:pointer; transition: all 0.2s;">
+            <input type="checkbox" id="chk-buffer" style="pointer-events: none; accent-color: var(--primary);">
+            <div style="font-size:20px;"></div>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text);">Proksimitas (Buffer)</div>
+              <div style="font-size:11px; color:var(--text-muted);">Radius jangkauan jarak Euclidean 500m, 1km, dan 2km.
+              </div>
+            </div>
+          </div>
+
+          <div id="buffer-result-table"
+            style="display:none; margin-top:-4px; margin-bottom:6px; background:#fff; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+            <table style="width:100%; font-size:11px; border-collapse:collapse; text-align:left;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--border); font-weight:700; color:var(--text);">
+                  <th style="padding:4px;">Zonasi Radius</th>
+                  <th style="padding:4px;">Luas Area Studi</th>
+                  <th style="padding:4px;">Keterangan Akses</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px; font-weight:600;">500 Meter</td>
+                  <td style="padding:4px;">7,85 km²</td>
+                  <td style="padding:4px; color:#00A651; font-weight:600;">Sangat Tinggi</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px; font-weight:600;">1,0 Kilometer</td>
+                  <td style="padding:4px;">18,42 km²</td>
+                  <td style="padding:4px; color:#FF6B35; font-weight:600;">Moderat</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px; font-weight:600;">2,0 Kilometer</td>
+                  <td style="padding:4px;">24,13 km²</td>
+                  <td style="padding:4px; color:var(--text-muted);">Batas Maksimum</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="kde-card" onclick="handleKdeToggle()"
+            style="display:flex; align-items:center; gap:10px; background:var(--surface); padding:10px; border-radius:var(--radius-sm); border:1px solid #FFCC80; cursor:pointer; transition: all 0.2s;">
+            <input type="checkbox" id="chk-kde" style="pointer-events: none; accent-color: var(--primary);">
+            <div style="font-size:20px;"></div>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text);">Kernel Density Estimation (KDE)</div>
+              <div style="font-size:11px; color:var(--text-muted);">Interpolasi kerapatan spasial berbasis matriks
+                raster.
+              </div>
+            </div>
+          </div>
+
+          <div id="kde-result-table"
+            style="display:none; margin-top:-4px; background:#fff; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+            <table style="width:100%; font-size:11px; border-collapse:collapse; text-align:left;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--border); font-weight:700; color:var(--text);">
+                  <th style="padding:4px;">Kelas Densitas</th>
+                  <th style="padding:4px;">Klaster Kecamatan Dominan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;"><span
+                      style="background:#FFE8EA; color:#ED1C24; padding:2px 6px; border-radius:4px; font-weight:700;">High
+                      Density</span></td>
+                  <td style="padding:4px;">Gedongtengen, Umbulharjo</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;"><span
+                      style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-weight:700;">Medium
+                      Density</span></td>
+                  <td style="padding:4px;">Gondokusuman, Mergangsan</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px;"><span
+                      style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-weight:700;">Low
+                      Density</span></td>
+                  <td style="padding:4px;">Mantrijeron, Gondomanan</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="wo-card" onclick="handleWoToggle()"
+            style="display:flex; align-items:center; gap:10px; background:var(--surface); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border); cursor:pointer; transition: all 0.2s; margin-top:8px;">
+            <input type="checkbox" id="chk-wo" style="pointer-events: none; accent-color: var(--primary);">
+            <div style="font-size:20px;"></div>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text);">Peta Kesesuaian Lokasi (WO)</div>
+              <div style="font-size:11px; color:var(--text-muted);">Hasil integrasi parameter untuk rekomendasi gerai
+                baru.
+                Berbasis data kepadatan penduduk, luas, dll.</div>
+            </div>
+          </div>
+
+          <div id="wo-result-table"
+            style="display:none; margin-top:-4px; background:#fff; padding:10px; border:1px solid #90CAF9; border-radius:var(--radius-sm);">
+            <table style="width:100%; font-size:11px; border-collapse:collapse; text-align:left;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--border); font-weight:700; color:var(--text);">
+                  <th style="padding:4px;">Interval Skor</th>
+                  <th style="padding:4px;">Tingkat Kesesuaian</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;">> 4.0</td>
+                  <td style="padding:4px;"><span
+                      style="background:#E8F5E9; color:#1B5E20; padding:2px 6px; border-radius:4px; font-weight:700;">Sangat
+                      Sesuai</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;">3.2 - 4.0</td>
+                  <td style="padding:4px;"><span
+                      style="background:#DCEDC8; color:#33691E; padding:2px 6px; border-radius:4px; font-weight:700;">Sesuai</span>
+                  </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;">2.6 - 3.2</td>
+                  <td style="padding:4px;"><span
+                      style="background:#FFF9C4; color:#F57F17; padding:2px 6px; border-radius:4px; font-weight:700;">Cukup
+                      Sesuai</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:4px;">1.8 - 2.6</td>
+                  <td style="padding:4px;"><span
+                      style="background:#FFE0B2; color:#E65100; padding:2px 6px; border-radius:4px; font-weight:700;">Kurang
+                      Sesuai</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:4px;">
+                    < 1.8</td>
+                  <td style="padding:4px;"><span
+                      style="background:#FFCDD2; color:#B71C1C; padding:2px 6px; border-radius:4px; font-weight:700;">Tidak
+                      Sesuai</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <style>
+/* --- STYLING UNTUK INDEKS HARGA --- */
+.commodity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.commodity-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.commodity-card:hover {
+  border-color: #BDBDBD;
+}
+.commodity-header {
+  background: var(--surface);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+.commodity-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.commodity-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.price-list {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.price-item:last-child {
+  border-bottom: none;
+}
+.store-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.store-price {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+.rank-badge {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.rank-1 { background: #E8F5E9; color: #2E7D32; }
+.rank-2 { background: #FFF3E0; color: #E65100; }
+.rank-3 { background: #F5F5F5; color: #616161; }
+      </style>
+
+      <div class="tab-panel" id="tab-dashboard">
+
+        <div class="section-title">Ringkasan</div>
+
+        <div class="stat-card"
+          style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;">
+          <div class="stat-ico" style="display: flex; align-items: center; justify-content: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
+          <div>
+            <div class="stat-num" style="color:#fff;" id="d-total">0</div>
+            <div class="stat-desc" style="color:rgba(255,255,255,.8);">Total Supermarket Terdata</div>
+          </div>
+        </div>
+<div class="section-title" style="margin-top:14px;">Ranking Berdasarkan Harga Termurah</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">
+          Komparasi peringkat harga rata-rata termurah berdasarkan tabulasi survei lapangan.
+        </div>
+
+        <div class="commodity-grid">
+          
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Beras SPHP <span class="commodity-unit">(5 kg)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Pamella Swalayan</div><div class="store-price">Rp 58.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Superindo</div><div class="store-price">Rp 58.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Toko Progo</div><div class="store-price">Rp 58.500</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Indomie <span class="commodity-unit">(per pcs)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Manna Kampus</div><div class="store-price">Rp 2.935</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Toko Progo</div><div class="store-price">Rp 3.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Gardena</div><div class="store-price">Rp 3.100</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Minyak Goreng <span class="commodity-unit">(800 ml)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Gardena</div><div class="store-price">Rp 16.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Superindo</div><div class="store-price">Rp 16.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Toko Progo</div><div class="store-price">Rp 17.000</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Gula Pasir <span class="commodity-unit">(1 kg)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Superindo</div><div class="store-price">Rp 17.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Pamella Swalayan</div><div class="store-price">Rp 17.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Manna Kampus</div><div class="store-price">Rp 17.895</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Susu Kental Manis <span class="commodity-unit">(280 ml)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Manna Kampus</div><div class="store-price">Rp 10.100</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Toko Progo</div><div class="store-price">Rp 11.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Superindo</div><div class="store-price">Rp 11.900</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Garam Refina <span class="commodity-unit">(250 gram)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Gardena</div><div class="store-price">Rp 3.200</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Pamella Swalayan</div><div class="store-price">Rp 3.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Superindo</div><div class="store-price">Rp 3.500</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Daging Ayam Fillet <span class="commodity-unit">(1 kg)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Gardena</div><div class="store-price">Rp 43.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Toko Progo</div><div class="store-price">Rp 48.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Pamella Swalayan</div><div class="store-price">Rp 52.000</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Telur Ayam <span class="commodity-unit">(1 kg)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Manna Kampus</div><div class="store-price">Rp 25.600</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Superindo</div><div class="store-price">Rp 26.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Pamella Swalayan</div><div class="store-price">Rp 27.000</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Buah Apel <span class="commodity-unit">(100 gram)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Pamella Swalayan</div><div class="store-price">Rp 3.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Toko Progo</div><div class="store-price">Rp 3.800</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Gardena</div><div class="store-price">Rp 4.200</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Buah Jeruk <span class="commodity-unit">(100 gram)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Gardena</div><div class="store-price">Rp 2.200</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Pamella Swalayan</div><div class="store-price">Rp 2.250</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Toko Progo</div><div class="store-price">Rp 2.500</div></div>
+            </div>
+          </div>
+
+          <div class="commodity-card">
+            <div class="commodity-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+              <div class="commodity-title">Sayur Bayam <span class="commodity-unit">(1 ikat)</span></div>
+            </div>
+            <div class="price-list">
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-1">1</div>Pamella Swalayan</div><div class="store-price">Rp 3.000</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-2">2</div>Gardena</div><div class="store-price">Rp 3.500</div></div>
+              <div class="price-item"><div class="store-name"><div class="rank-badge rank-3">3</div>Toko Progo</div><div class="store-price">Rp 4.000</div></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="section-title">Sebaran per Brand</div>
+        <div id="brand-list" style="display:flex;flex-direction:column;gap:6px; margin-bottom:14px;"></div>
+
+        <div class="section-title" style="margin-top:14px;">Informasi Umum</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+
+          <div
+            style="display: flex; align-items: flex-start; gap: 10px; background: var(--surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div
+              style="background: #E3F2FD; color: #1976D2; padding: 6px; border-radius: 6px; display: flex; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="16" rx="2" ry="2"></rect>
+                <circle cx="8" cy="17" r="1.5"></circle>
+                <circle cx="16" cy="17" r="1.5"></circle>
+                <path d="M4 11h16"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text);">Akses Trans Jogja</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Mudah dijangkau oleh rute koridor
+                utama (seperti area Malioboro).</div>
+            </div>
+          </div>
+
+          <div
+            style="display: flex; align-items: flex-start; gap: 10px; background: var(--surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div
+              style="background: #FFF3E0; color: #F57C00; padding: 6px; border-radius: 6px; display: flex; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text);">Layanan 24 Jam</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Terdapat 3 titik yang beroperasi
+                nonstop (Circle K, Alfamart, Lawson).</div>
+            </div>
+          </div>
+
+          <div
+            style="display: flex; align-items: flex-start; gap: 10px; background: var(--surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div
+              style="background: #E8F5E9; color: #388E3C; padding: 6px; border-radius: 6px; display: flex; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <path d="M9 16V8h4a2 2 0 0 1 0 4H9"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text);">Fasilitas Parkir</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Mayoritas gerai ritel memiliki
+                kapasitas area parkir yang memadai.</div>
+            </div>
+          </div>
+
+          <div
+            style="display: flex; align-items: flex-start; gap: 10px; background: var(--surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div
+              style="background: #F3E5F5; color: #7B1FA2; padding: 6px; border-radius: 6px; display: flex; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text);">Pembayaran Digital</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Telah mendukung transaksi
+                nirkontak (QRIS dan Non-tunai).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="tab-panel" id="tab-tentang">
+          <div class="about-card">
+            <h3>GeoMart Jogja</h3>
+            <p>WebGIS Persebaran Supermarket di Kota Yogyakarta. Membantu masyarakat menemukan supermarket terdekat dan
+              memahami distribusi spasial ritel di Kota Yogyakarta.</p>
+          </div>
+          <div class="section-title">Fitur Utama</div>
+
+          <div class="about-feature">
+            <div class="af-ico">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                <line x1="8" y1="2" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="22"></line>
+              </svg>
+            </div>
+            <div>
+              <h5>Visualisasi Peta</h5>
+              <p>Tampilkan lokasi supermarket secara interaktif dengan berbagai basemap pilihan.</p>
+            </div>
+          </div>
+
+          <div class="about-feature">
+            <div class="af-ico">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </div>
+            <div>
+              <h5>Analisis Spasial</h5>
+              <p>Analisis distribusi dan pola persebaran supermarket antar kecamatan.</p>
+            </div>
+          </div>
+
+          <div class="about-feature">
+            <div class="af-ico">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h5>Dashboard Statistik</h5>
+              <p>Visualisasi data statistik jumlah, jenis, dan brand supermarket.</p>
+            </div>
+          </div>
+
+          <div class="about-feature">
+            <div class="af-ico">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div>
+              <h5>Request Titik Baru</h5>
+              <p>Ajukan penambahan lokasi supermarket yang belum terdaftar.</p>
+            </div>
+          </div>
+          <div class="section-title">Kontak</div>
+          <div
+            style="font-size:12px; color:var(--text-muted); line-height:1.8; padding:6px 0; display:flex; flex-direction:column; gap:8px;">
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="https://www.upnyk.ac.id/public/assets/pages/image-83700542138469295167.png" alt="UPN"
+                style="width: 16px; height: 16px; object-fit: contain;">
+              <span><strong>Institusi:</strong> Universitas Pembangunan Nasional "Veteran" Yogyakarta</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="https://cdn-icons-png.flaticon.com/512/732/732200.png" alt="Email"
+                style="width: 16px; height: 16px; object-fit: contain;">
+              <span><strong>Email:</strong> geomart.jogja@gmail.com</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp"
+                style="width: 16px; height: 16px; object-fit: contain;">
+              <span><strong>WhatsApp:</strong> +6281818291794</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="https://cdn-icons-png.flaticon.com/512/2838/2838779.png" alt="Tahun"
+                style="width: 16px; height: 16px; object-fit: contain;">
+              <span><strong>Tahun:</strong> 2026</span>
+            </div>
+          </div>
+          <button class="btn-submit" onclick="openRequestModal()">📌 Request Titik Supermarket Baru</button>
+        </div>
+    </aside>
+
+    <div class="map-wrap" id="map-wrap">
+      <button class="toggle-sidebar" id="toggle-btn" onclick="toggleSidebar()"
+        title="Sembunyikan/tampilkan sidebar">◀</button>
+      <div id="map"></div>
+
+      <div class="layer-switcher">
+        <div class="ls-title">Basemap</div>
+        <label class="layer-option"><input type="radio" name="basemap" value="osm" checked
+            onchange="switchBasemap(this.value)" /> OpenStreetMap</label>
+        <label class="layer-option"><input type="radio" name="basemap" value="satellite"
+            onchange="switchBasemap(this.value)" /> Satelit</label>
+        <label class="layer-option"><input type="radio" name="basemap" value="topo"
+            onchange="switchBasemap(this.value)" /> Topografi</label>
+        <hr style="margin:8px 0;border:none;border-top:1px solid var(--border)" />
+        <label class="layer-option"><input type="checkbox" id="toggle-kecamatan" onchange="toggleKecamatan()" /> Batas
+          Kecamatan</label>
+        <label class="layer-option"><input type="checkbox" id="toggle-cluster" checked onchange="toggleCluster()" />
+          Lokasi Supermarket</label>
+        <label class="layer-option"><input type="checkbox" id="toggle-heatmap" onchange="toggleHeatmap()" />
+          Heatmap</label>
+      </div>
+
+      <div class="map-legend">
+        <div class="leg-title">Legenda</div>
+        <div class="leg-row">
+          <div class="leg-dot" style="background:#ED1C24;"></div>Supermarket
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="request-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2>📌 Request Titik Baru</h2>
+          <p>Hubungi kami untuk menambahkan supermarket ke dalam peta</p>
+        </div>
+        <button class="modal-close" onclick="closeRequestModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama Supermarket *</label>
+            <input type="text" id="req-nama" placeholder="cth. Superindo Gejayan" />
+          </div>
+          <div class="form-group">
+            <label>Jenis *</label>
+            <select id="req-jenis">
+              <option value="">Pilih jenis...</option>
+              <option>Supermarket</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Alamat Lengkap *</label>
+          <input type="text" id="req-alamat" placeholder="Jl. ... No. ..., Kelurahan, Kecamatan" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kecamatan</label>
+            <select id="req-kec">
+              <option value="">Pilih kecamatan...</option>
+              <option>Mergangsan</option>
+              <option>Mantrijeron</option>
+              <option>Gondokusuman</option>
+              <option>Gondomanan</option>
+              <option>Umbulharjo</option>
+              <option>Gedongtengen</option>
+              <option>Kraton</option>
+              <option>Pakualaman</option>
+              <option>Jetis</option>
+              <option>Danurejan</option>
+              <option>Ngampilan</option>
+              <option>Wirobrajan</option>
+              <option>Tegalrejo</option>
+              <option>Kotagede</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Nama Pelapor</label>
+            <input type="text" id="req-pelapor" placeholder="Nama Anda" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Keterangan Tambahan</label>
+          <textarea id="req-ket" placeholder="Info tambahan (jam buka, ukuran, dll)..."></textarea>
+        </div>
+      </div>
+      <div style="padding:0 24px 12px;font-size:12px;color:var(--text-muted);text-align:center;">
+        Kirim request via salah satu platform di bawah:
+      </div>
+      <div class="contact-options">
+        <a class="contact-opt" id="wa-link" href="#" onclick="sendViaWA(event)">
+          <span class="co-icon" style="display:flex;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+              </path>
+            </svg>
+          </span>
+          <span>WhatsApp</span><small>+6281818291794</small>
+        </a>
+
+        <a class="contact-opt" id="email-link" href="#" onclick="sendViaEmail(event)">
+          <span class="co-icon" style="display:flex;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+          </span>
+          <span>Email</span><small>geomart.jogja@gmail.com</small>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"> <span id="toast-msg"></span></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+
+  <script>
+    // Variabel global untuk layer WO
+    let woLayerGroup = null;
+    let isWoLoaded = false;
+
+    function handleWoToggle() {
+      const chk = document.getElementById('chk-wo');
+      const table = document.getElementById('wo-result-table');
+      const card = document.getElementById('wo-card');
+
+      if (!chk || !table || !card) return;
+
+      // Toggle status checkbox
+      chk.checked = !chk.checked;
+
+      if (chk.checked) {
+        // UI Aktif
+        card.style.background = 'var(--primary-light)';
+        card.style.borderColor = 'var(--primary)';
+        table.style.display = 'block';
+
+        if (!isWoLoaded) {
+          // Ambil file GeoJSON secara asinkron
+          fetch('./geojson/kecamatan.geojson')
+            .then(res => {
+              if (!res.ok) throw new Error('File hasil_wo.geojson tidak ditemukan!');
+              return res.json();
+            })
+            .then(data => {
+              woLayerGroup = L.geoJSON(data, {
+                style: function (feature) {
+                  let score = feature.properties.score_ttl;
+                  let fillColor = '#ffffff';
+                  let color = '#333333';
+
+                  // Algoritma klasifikasi 5 kelas
+                  if (score > 4.0) {
+                    fillColor = '#1A9641'; color = '#005a32';
+                  } else if (score > 3.2) {
+                    fillColor = '#A6D96A'; color = '#238b45';
+                  } else if (score > 2.6) {
+                    fillColor = '#FFFFBF'; color = '#cc4c02';
+                  } else if (score > 1.8) {
+                    fillColor = '#FDAE61'; color = '#8c2d04';
+                  } else {
+                    fillColor = '#D7191C'; color = '#67000b';
+                  }
+
+                  return {
+                    color: color,
+                    weight: 1.2,
+                    fillColor: fillColor,
+                    fillOpacity: 0.65,
+                    opacity: 1
+                  };
+                },
+                onEachFeature: function (feature, layer) {
+                  let kecamatan = feature.properties.WADMKC || 'Tidak Teridentifikasi';
+                  let score = feature.properties.score_ttl;
+                  let kepadatan = feature.properties.KEPADATAN_ || '-';
+
+                  let klasifikasi = 'Tidak Sesuai';
+                  if (score > 4.0) klasifikasi = 'Sangat Sesuai';
+                  else if (score > 3.2) klasifikasi = 'Sesuai';
+                  else if (score > 2.6) klasifikasi = 'Cukup Sesuai';
+                  else if (score > 1.8) klasifikasi = 'Kurang Sesuai';
+
+                  // Struktur popup tanpa emotikon
+                  layer.bindPopup(`
+                <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color: #333;">
+                  <h4 style="margin: 0 0 8px 0; border-bottom: 1px solid #e0e0e0; padding-bottom: 6px;">Kecamatan ${kecamatan}</h4>
+                  <div style="margin-bottom: 4px;"><strong>Skor Evaluasi:</strong> ${score.toFixed(2)}</div>
+                  <div style="margin-bottom: 4px;"><strong>Kelas Kesesuaian:</strong> ${klasifikasi}</div>
+                  <div><strong>Kepadatan Penduduk:</strong> ${kepadatan} jiwa/km&sup2;</div>
+                </div>
+              `);
+                }
+              });
+
+              woLayerGroup.addTo(map);
+              isWoLoaded = true;
+            })
+            .catch(err => {
+              console.error("Gagal memuat GeoJSON WO:", err);
+              // Anda bisa menggunakan fungsi showToast jika tersedia di sistem Anda
+              if (typeof showToast === 'function') showToast("Gagal memuat peta kesesuaian (WO).");
+            });
+
+        } else if (woLayerGroup) {
+          // Jika sudah dimuat sebelumnya, tambahkan kembali ke peta
+          map.addLayer(woLayerGroup);
+        }
+
+      } else {
+        // UI Non-aktif
+        card.style.background = 'var(--surface)';
+        card.style.borderColor = 'var(--border)';
+        table.style.display = 'none';
+
+        // Hapus layer dari peta
+        if (woLayerGroup) {
+          map.removeLayer(woLayerGroup);
+        }
+      }
+    }
+    // Deklarasi global penampung layer spasial baru
+    let bufferLayerGroup = null;
+
+    function handleBufferToggle() {
+      const chk = document.getElementById('chk-buffer');
+      const table = document.getElementById('buffer-result-table');
+      const card = document.getElementById('buffer-card');
+
+      if (!chk || !table || !card) return;
+
+      // Alihkan status checkbox
+      chk.checked = !chk.checked;
+
+      if (chk.checked) {
+        // Transformasi gaya visual aktif pada kartu sidebar
+        card.style.background = 'var(--primary-light)';
+        card.style.borderColor = 'var(--primary)';
+        table.style.display = 'block';
+
+        // Inisialisasi grup layer buffer vektor
+        bufferLayerGroup = L.layerGroup();
+
+        // Iterasi pembuatan ring buffer multi-distance di setiap koordinat objek ritel
+        supermarkets.forEach(d => {
+          // Buffer Proksimitas Jauh: Jari-jari 2000 Meter
+          L.circle([d.lat, d.lng], {
+            radius: 2000, color: '#B3151A', fillColor: '#ED1C24', fillOpacity: 0.02, weight: 1, dashArray: '5, 5'
+          }).addTo(bufferLayerGroup);
+
+          // Buffer Proksimitas Menengah: Jari-jari 1000 Meter
+          L.circle([d.lat, d.lng], {
+            radius: 1000, color: '#FF6B35', fillColor: '#FF6B35', fillOpacity: 0.04, weight: 1, dashArray: '3, 3'
+          }).addTo(bufferLayerGroup);
+
+          // Buffer Proksimitas Dekat: Jari-jari 500 Meter
+          L.circle([d.lat, d.lng], {
+            radius: 500, color: '#00A651', fillColor: '#00A651', fillOpacity: 0.08, weight: 1.5
+          }).addTo(bufferLayerGroup);
+        });
+
+        // Proyeksikan grup layer ke komponen peta utama
+        bufferLayerGroup.addTo(map);
+      } else {
+        // Kembalikan ke kondisi semula jika dinonaktifkan
+        card.style.background = 'var(--surface)';
+        card.style.borderColor = 'var(--border)';
+        table.style.display = 'none';
+
+        if (bufferLayerGroup) {
+          map.removeLayer(bufferLayerGroup);
+          bufferLayerGroup = null;
+        }
+      }
+    }
+
+    function handleKdeToggle() {
+      const chk = document.getElementById('chk-kde');
+      const table = document.getElementById('kde-result-table');
+      const card = document.getElementById('kde-card');
+
+      if (!chk || !table || !card) return;
+
+      chk.checked = !chk.checked;
+
+      // Sinkronisasi status keterbacaan dengan kontrol checkbox heatmap bawaan di basemap switcher
+      const mainHeatmapCb = document.getElementById('toggle-heatmap');
+
+      if (chk.checked) {
+        card.style.background = 'var(--primary-light)';
+        card.style.borderColor = 'var(--primary)';
+        table.style.display = 'block';
+        if (mainHeatmapCb) mainHeatmapCb.checked = true;
+
+        // Inisialisasi interpolasi spasial heatmap apabila objek layer belum terbuat
+        if (!heatLayer) {
+          heatLayer = L.layerGroup();
+          supermarkets.forEach(d => {
+            L.circle([d.lat, d.lng], {
+              radius: 450, color: '#ED1C24', fillColor: '#ED1C24', fillOpacity: 0.18, opacity: 0.3, weight: 1
+            }).addTo(heatLayer);
+          });
+          heatLayer.addTo(map);
+        }
+      } else {
+        card.style.background = 'var(--surface)';
+        card.style.borderColor = 'var(--border)';
+        table.style.display = 'none';
+        if (mainHeatmapCb) mainHeatmapCb.checked = false;
+
+        if (heatLayer) {
+          map.removeLayer(heatLayer);
+          heatLayer = null;
+        }
+      }
+    }
+    // ─── DATA SUPERMARKET (12 titik survei) ───
+    const supermarkets = [
+      {
+        id: 1, nama: "Superindo Dongkelan",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Mantrijeron",
+        alamat: "Jl. Bantul No.97, Gedongkiwo, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.820517, lng: 110.355612,
+        info: ["Mudah dijangkau Trans Jogja", "Memiliki area parkir", "Mendukung QRIS"]
+      },
+      {
+        id: 2, nama: "Superindo Godean",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Tegalrejo",
+        alamat: "Jl. HOS Cokroaminoto No.176, Tegalrejo, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.7823, lng: 110.3533,
+        info: ["Dekat Halte Trans Jogja", "Memiliki area parkir luas", "Mendukung QRIS"]
+      },
+      {
+        id: 3, nama: "Superindo Jalan Solo",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Gondokusuman",
+        alamat: "Jl. Urip Sumoharjo No.38A, Klitren, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.7834, lng: 110.3826,
+        info: ["Sangat dekat Halte Trans Jogja", "Memiliki area parkir (jam sibuk padat)", "Mendukung QRIS"]
+      },
+      {
+        id: 4, nama: "Superindo Parangtritis",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Mergangsan",
+        alamat: "Jl. Menukan No.1-3, Brontokusuman, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.8243, lng: 110.3681,
+        info: ["Dekat Halte Trans Jogja", "Memiliki area parkir memadai", "Mendukung QRIS"]
+      },
+      {
+        id: 5, nama: "Superindo Perintis Kemerdekaan",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Kotagede",
+        alamat: "Jl. Ngeksigondo No.7, Prenggan, Kotagede, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.8192, lng: 110.3962,
+        info: ["Dapat dijangkau Trans Jogja", "Memiliki area parkir luas", "Mendukung QRIS"]
+      },
+      {
+        id: 6, nama: "Superindo Sultan Agung",
+        jenis: "supermarket", brand: "Superindo",
+        kec: "Mergangsan",
+        alamat: "Jl. Sultan Agung No.10, Wirogunan, Kota Yogyakarta",
+        jam: "07.00 - 22.00",
+        lat: -7.801812, lng: 110.372901,
+        info: ["Sangat dekat Halte Trans Jogja", "Memiliki area parkir luas & aman", "Mendukung QRIS"]
+      },
+      {
+        id: 7, nama: "Manna Kampus (Mirota Kampus)",
+        jenis: "supermarket", brand: "Mirota",
+        kec: "Gondokusuman",
+        alamat: "Jl. C. Simanjuntak No.70, Terban, Kota Yogyakarta",
+        jam: "08.30 - 21.30",
+        lat: -7.776361, lng: 110.374551,
+        info: ["Akses langsung Halte Trans Jogja", "Memiliki area parkir gedung & halaman", "Mendukung QRIS"]
+      },
+      {
+        id: 8, nama: "Pamella 1 Supermarket",
+        jenis: "supermarket", brand: "Pamela",
+        kec: "Umbulharjo",
+        alamat: "Jl. Kusumanegara No.135, Semaki, Kota Yogyakarta",
+        jam: "07.30 - 21.30",
+        lat: -7.801927, lng: 110.391053,
+        info: ["Akses langsung Halte Trans Jogja", "Memiliki area parkir sangat luas", "Mendukung QRIS"]
+      },
+      {
+        id: 9, nama: "Pamella 2 Swalayan",
+        jenis: "supermarket", brand: "Pamela",
+        kec: "Umbulharjo",
+        alamat: "Jl. Kusumanegara, Muja-Muju, Kota Yogyakarta",
+        jam: "07.30 - 21.30",
+        lat: -7.813268, lng: 110.386337,
+        info: ["Mudah dijangkau Trans Jogja", "Memiliki area parkir motor & mobil", "Mendukung QRIS"]
+      },
+      {
+        id: 10, nama: "Pamella 4 Supermarket",
+        jenis: "supermarket", brand: "Pamela",
+        kec: "Umbulharjo",
+        alamat: "Jl. Wonosari KM 4, Wonocatur, Kota Yogyakarta",
+        jam: "07.30 - 21.30",
+        lat: -7.824282, lng: 110.390124,
+        info: ["Mudah dijangkau Trans Jogja", "Memiliki area parkir sangat luas & nyaman", "Mendukung QRIS"]
+      },
+      {
+        id: 11, nama: "Gardena Dept. Store & Supermarket",
+        jenis: "supermarket", brand: "Gardena",
+        kec: "Gondokusuman",
+        alamat: "Jl. Urip Sumoharjo No.40, Klitren, Kota Yogyakarta",
+        jam: "09.00 - 21.00",
+        lat: -7.783305, lng: 110.381225,
+        info: ["Akses langsung Halte Trans Jogja", "Memiliki area parkir basement & depan", "Mendukung QRIS"]
+      },
+      {
+        id: 12, nama: "Toko Progo",
+        jenis: "supermarket", brand: "Progo",
+        kec: "Gondomanan",
+        alamat: "Jl. A. Yani No.73, Ngupasan, Kota Yogyakarta",
+        jam: "09.00 - 21.00",
+        lat: -7.798335, lng: 110.368643,
+        info: ["Sangat dekat Halte Trans Jogja", "Memiliki area parkir terbatas (Kawasan Malioboro)", "Mendukung QRIS"]
+      }
+    ];
+
+    // ─── MAP SETUP ───
+    const map = L.map('map', { zoomControl: false }).setView([-7.800, 110.375], 14);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const basemaps = {
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© ESRI', maxZoom: 19 }),
+      topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap', maxZoom: 17 }),
+    };
+    basemaps.osm.addTo(map);
+
+    let kecamatanLayer = null;
+    fetch('./geojson/padat_kecamatan.geojson')
+      .then(res => { if (!res.ok) throw new Error('GeoJSON not found'); return res.json(); })
+      .then(data => {
+        kecamatanLayer = L.geoJSON(data, {
+          style: { color: '#ED1C24', weight: 2, opacity: 0.6, fillColor: '#ED1C24', fillOpacity: 0.05 },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const namaKec = props.WADMKC || props.NAMOBJ || props.name || 'Wilayah';
+            layer.bindTooltip(namaKec, {
+              className: 'kec-tooltip'
+            });
+            layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.15, weight: 3 }); });
+            layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.05, weight: 2 }); });
+          }
+        });
+        const cb = document.getElementById('toggle-kecamatan');
+        if (cb) { cb.checked = true; kecamatanLayer.addTo(map); }
+      })
+      .catch(() => { });
+
+    map.on('mousemove', e => {
+      const el = document.getElementById('bar-coords');
+      if (el) el.textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    });
+
+    // ─── ICONS & LOGO BRAND ───
+    const brandLogos = {
+      "Superindo": "./gambar/logo_superindo.png",
+      "Mirota": "./gambar/logo_mirota.png",
+      "Pamela": "./gambar/logo_pamela.jpg",
+      "Gardena": "./gambar/logo_gardena.png",
+      "Progo": "./gambar/logo_progo.jpg",
+      "default": "./gambar/logo_geomart-removebg-preview.png"
+    };
+
+    function makeBrandIcon(brandName) {
+      const logoUrl = brandLogos[brandName] || brandLogos["default"];
+      return L.divIcon({
+        className: '',
+        html: `<div style="
+      width:38px;height:38px;border-radius:50% 50% 50% 4px;
+      background:#ffffff;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 3px 12px rgba(237,28,36,0.5);
+      border:2.5px solid #ED1C24;transform:rotate(-45deg) scale(0.9);
+      overflow: hidden;
+    ">
+      <div style="transform:rotate(45deg); width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding: 4px;">
+        <img src="${logoUrl}" style="width: 22px; height: 22px; object-fit: contain;" alt="${brandName}" onerror="this.src='${brandLogos['default']}'">
+      </div>
+    </div>`,
+        iconSize: [38, 38], iconAnchor: [19, 43], popupAnchor: [0, -46],
+      });
+    }
+
+    const icons = { supermarket: '🛒' };
+    const badgeBg = { supermarket: '#FFE8EA' };
+    const badgeTxt = { supermarket: '#ED1C24' };
+
+    // ─── CLUSTER ───
+    let clusterGroup = L.markerClusterGroup({
+      iconCreateFunction: cluster => {
+        const n = cluster.getChildCount();
+        const s = n < 5 ? 36 : 44;
+        return L.divIcon({
+          html: `<div style="width:${s}px;height:${s}px;border-radius:50%;background:#ED1C24;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 4px 12px rgba(237,28,36,0.4);border:3px solid #fff;">${n}</div>`,
+          iconSize: [s, s], className: ''
+        });
+      }
+    });
+
+    let allMarkers = [];
+    let activeFilter = 'semua';
+    let activeKec = 'semua';
+    let searchTerm = '';
+
+    // ─── FUNGSI RENDER MARKER DINAMIS ───
+    function buildMarker(d) {
+      const m = L.marker([d.lat, d.lng], { icon: makeBrandIcon(d.brand) });
+
+      // Kumpulan Ikon SVG agar lebih rapi dan profesional (tanpa emoticon)
+      const iconPin = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px; flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+      const iconClock = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px; flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+      const iconTag = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px; flex-shrink:0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`;
+      const iconInfo = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px; margin-bottom:-2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+      const iconMapBtn = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>`;
+      const iconShareBtn = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
+
+      // Bagian fasilitas juga sudah disesuaikan agar menggunakan iconInfo
+      const fasilitasHtml = (d.info && d.info.length > 0)
+        ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+             <div style="font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 4px;">${iconInfo} Fasilitas Terkait:</div>
+             <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+               ${d.info.map(f => `<li>${f}</li>`).join('')}
+             </ul>
+           </div>`
+        : '';
+
+      m.bindPopup(`
+    <div class="popup-inner">
+      <div class="popup-head">
+        <h3>${d.nama}</h3>
+        <span>${d.jenis.charAt(0).toUpperCase() + d.jenis.slice(1)} · ${d.kec}</span>
+      </div>
+      <div class="popup-body">
+        <div class="popup-row">${iconPin} <span><strong>Alamat</strong> <br/> ${d.alamat}</span></div>
+        <div class="popup-row">${iconClock} <span><strong>Jam Buka</strong> <br/> ${d.jam}</span></div>
+        <div class="popup-row">${iconTag} <div style="display:flex; align-items:center; gap:6px;"><strong>Brand</strong>
+          <span style="background:${badgeBg[d.jenis]};color:${badgeTxt[d.jenis]};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${d.brand}</span>
+        </div></div>
+        ${fasilitasHtml}
+      </div>
+      <div class="popup-actions">
+        <button class="popup-btn popup-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:6px;" onclick="openInMaps(${d.lat},${d.lng})">${iconMapBtn} Google Maps</button>
+        <button class="popup-btn popup-btn-secondary" style="display:flex; align-items:center; justify-content:center; gap:6px;" onclick="shareLocation('${d.nama.replace(/'/g, "\\'")}',${d.lat},${d.lng})">${iconShareBtn} Bagikan</button>
+      </div>
+    </div>
+  `, { className: 'custom-popup', maxWidth: 280 });
+
+      m.on('click', () => highlightListItem(d.id));
+      return { marker: m, data: d };
+    }
+
+    function renderMarkers() {
+      clusterGroup.clearLayers();
+      const filtered = supermarkets.filter(d => {
+        const matchType = activeFilter === 'semua' || d.jenis === activeFilter;
+        const matchKec = activeKec === 'semua' || d.kec === activeKec;
+        const matchSearch = searchTerm === '' ||
+          d.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          d.kec.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          d.brand.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchType && matchKec && matchSearch;
+      });
+
+      allMarkers = filtered.map(buildMarker);
+      allMarkers.forEach(({ marker }) => clusterGroup.addLayer(marker));
+      map.addLayer(clusterGroup);
+
+      const barCount = document.getElementById('bar-count');
+      if (barCount) barCount.textContent = filtered.length;
+
+      renderList(filtered);
+      updateHeaderCount(filtered.length);
+    }
+
+    function updateHeaderCount(n) {
+      const hdrCount = document.getElementById('hdr-count');
+      if (hdrCount) hdrCount.textContent = n;
+    }
+
+    function renderList(data) {
+      const el = document.getElementById('supermarket-list');
+      const listCount = document.getElementById('list-count');
+      if (listCount) listCount.textContent = data.length;
+
+      if (!el) return;
+      el.innerHTML = '';
+
+      if (!data.length) {
+        el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Tidak ada data ditemukan</div>`;
+        return;
+      }
+
+      data.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.id = `li-${d.id}`;
+        const badgeCls = { supermarket: 'badge-supermarket' };
+
+        // Penentuan URL logo berdasarkan brand ritel
+        const logoUrl = brandLogos[d.brand] || brandLogos["default"];
+
+        item.innerHTML = `
+      <div class="item-icon" style="background: #ffffff; border: 1px solid var(--border); padding: 4px; display: flex; align-items: center; justify-content: center;">
+        <img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain;" alt="${d.brand}" onerror="this.src='${brandLogos['default']}'">
+      </div>
+      <div class="item-info"><h4>${d.nama}</h4><span> ${d.kec} </span></div>
+      <span class="item-badge ${badgeCls[d.jenis]}">${d.brand}</span>
+    `;
+
+        item.onclick = () => {
+          map.setView([d.lat, d.lng], 17);
+          const found = allMarkers.find(m => m.data.id === d.id);
+          if (found) clusterGroup.zoomToShowLayer(found.marker, () => found.marker.openPopup());
+          highlightListItem(d.id);
+        };
+        el.appendChild(item);
+      });
+    }
+
+    function highlightListItem(id) {
+      document.querySelectorAll('.list-item').forEach(el => el.classList.remove('active-item'));
+      const el = document.getElementById(`li-${id}`);
+      if (el) { el.classList.add('active-item'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    }
+
+    // Inisialisasi awal
+    renderMarkers();
+
+    // ─── FILTERS ───
+    function filterByType(type, btn) {
+      activeFilter = type;
+      document.querySelectorAll('#filter-chips .chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      renderMarkers();
+    }
+    function filterByKec(kec, btn) {
+      activeKec = kec;
+      document.querySelectorAll('#kec-chips .chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      renderMarkers();
+    }
+    function filterList() {
+      searchTerm = document.getElementById('search-input').value;
+      renderMarkers();
+    }
+
+    // ─── BASEMAP & LAYERS ───
+    let currentBasemap = 'osm';
+    function switchBasemap(val) {
+      map.removeLayer(basemaps[currentBasemap]);
+      currentBasemap = val;
+      map.addLayer(basemaps[val]);
+    }
+
+    let heatLayer = null;
+    function toggleKecamatan() {
+      const on = document.getElementById('toggle-kecamatan').checked;
+      if (on && kecamatanLayer) map.addLayer(kecamatanLayer);
+      else if (kecamatanLayer) map.removeLayer(kecamatanLayer);
+    }
+    function toggleCluster() {
+      const on = document.getElementById('toggle-cluster').checked;
+      if (on) map.addLayer(clusterGroup);
+      else map.removeLayer(clusterGroup);
+    }
+    function toggleHeatmap() {
+      const on = document.getElementById('toggle-heatmap').checked;
+      if (on) {
+        heatLayer = L.layerGroup();
+        supermarkets.forEach(d => {
+          const col = '#ED1C24';
+          L.circle([d.lat, d.lng], {
+            radius: 350, color: col, fillColor: col,
+            fillOpacity: 0.15, opacity: 0.25, weight: 1
+          }).addTo(heatLayer);
+        });
+        heatLayer.addTo(map);
+      } else {
+        if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+      }
+    }
+
+    // ─── TABS ───
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+      if (name === 'analisis') initAnalisisCharts();
+      if (name === 'dashboard') initDashboard();
+    }
+
+    // ─── CHARTS ───
+    let chartsInit = { analisis: false, dashboard: false };
+
+    function initAnalisisCharts() {
+      if (chartsInit.analisis) return;
+      chartsInit.analisis = true;
+
+      const kecMap = {};
+      supermarkets.forEach(d => { kecMap[d.kec] = (kecMap[d.kec] || 0) + 1; });
+      const kecLabels = Object.keys(kecMap).sort((a, b) => kecMap[b] - kecMap[a]);
+      const kecVals = kecLabels.map(k => kecMap[k]);
+
+      new Chart(document.getElementById('chartKec'), {
+        type: 'bar',
+        data: {
+          labels: kecLabels,
+          datasets: [{ label: 'Jumlah', data: kecVals, backgroundColor: '#ED1C24', borderRadius: 6, borderSkipped: false }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { font: { size: 10 } } } }
+        }
+      });
+      const stotal = document.getElementById('s-total');
+      if (stotal) stotal.textContent = supermarkets.length;
+    }
+
+    function initDashboard() {
+      if (chartsInit.dashboard) return;
+      chartsInit.dashboard = true;
+
+      const dtotal = document.getElementById('d-total');
+      if (dtotal) dtotal.textContent = supermarkets.length;
+
+      const brandMap = {};
+      supermarkets.forEach(d => { brandMap[d.brand] = (brandMap[d.brand] || 0) + 1; });
+      const brands = Object.entries(brandMap).sort((a, b) => b[1] - a[1]);
+      const bl = document.getElementById('brand-list');
+      const total = supermarkets.length;
+
+      if (bl) {
+        brands.forEach(([brand, count]) => {
+          const pct = Math.round(count / total * 100);
+          const div = document.createElement('div');
+          div.style.cssText = 'font-size:12px;padding:4px 0;';
+          div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:600;color:var(--text);">${brand}</span>
+          <span style="color:var(--text-muted);">${count} toko (${pct}%)</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:#ED1C24;border-radius:99px;transition:width .6s;"></div>
+        </div>
+      `;
+          bl.appendChild(div);
+        });
+      }
+
+      new Chart(document.getElementById('chartJam'), {
+        type: 'bar',
+        data: {
+          labels: ['07:00', '07:30', '08:00', '08:30', '09:00', '10:00', '12:00', '21:00', '21:30', '22:00', '24jam'],
+          datasets: [{
+            label: 'Toko Buka',
+            data: [3, 5, 6, 7, 9, 9, 9, 6, 5, 5, 3],
+            backgroundColor: 'rgba(237,28,36,0.7)', borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Jumlah Buka', font: { size: 10 } } },
+            x: { ticks: { font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    // ─── SIDEBAR TOGGLE ───
+    let sidebarOpen = true;
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const btn = document.getElementById('toggle-btn');
+      sidebarOpen = !sidebarOpen;
+      sidebar.classList.toggle('collapsed', !sidebarOpen);
+      btn.textContent = sidebarOpen ? '◀' : '▶';
+      setTimeout(() => map.invalidateSize(), 310);
+    }
+
+    // ─── MODAL ───
+    function openRequestModal() { document.getElementById('request-modal').classList.add('show'); }
+    function closeRequestModal() { document.getElementById('request-modal').classList.remove('show'); }
+    document.getElementById('request-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('request-modal')) closeRequestModal();
+    });
+
+    function buildRequestMessage() {
+      const nama = document.getElementById('req-nama').value || '(tidak diisi)';
+      const jenis = document.getElementById('req-jenis').value || '(tidak diisi)';
+      const alamat = document.getElementById('req-alamat').value || '(tidak diisi)';
+      const kec = document.getElementById('req-kec').value || '(tidak diisi)';
+      const pelapor = document.getElementById('req-pelapor').value || '(tidak diisi)';
+      const ket = document.getElementById('req-ket').value || '-';
+      return `Halo, saya ingin request penambahan titik supermarket baru di GeoMart Jogja:\n\n` +
+        `Nama: ${nama}\n Jenis: ${jenis}\n Alamat: ${alamat}\n Kecamatan: ${kec}\n Pelapor: ${pelapor}\n Keterangan: ${ket}`;
+    }
+
+    function sendViaWA(e) {
+      e.preventDefault();
+      window.open(`https://wa.me/6281818291794?text=${encodeURIComponent(buildRequestMessage())}`, '_blank');
+      showToast('Membuka WhatsApp...');
+    }
+    function sendViaEmail(e) {
+      e.preventDefault();
+      window.open(`mailto:geomart.jogja@gmail.com?subject=${encodeURIComponent('Request Titik Supermarket Baru – GeoMart Jogja')}&body=${encodeURIComponent(buildRequestMessage())}`, '_blank');
+      showToast('Membuka aplikasi email...');
+    }
+
+    // ─── UTILITIES (PEMBAGIAN LOKASI & TOAST) ───
+    function openInMaps(lat, lng) {
+      // Tanda $ dihapus, diganti dengan template literal yang benar
+      window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+    }
+
+    function shareLocation(nama, lat, lng) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(`${nama} – ${url}`).then(() => showToast('Link disalin!'));
+      }
+    }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      const tmsg = document.getElementById('toast-msg');
+      if (t && tmsg) {
+        tmsg.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+      }
+    }
+
+    updateHeaderCount(supermarkets.length);
+  </script>
+</body>
+
+</html>
